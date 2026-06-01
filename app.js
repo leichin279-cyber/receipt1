@@ -42,6 +42,15 @@ function load(){
   try{pT=JSON.parse(localStorage.getItem('pt')||'["","",""]');}catch(e){pT=['','',''];}
   try{blocks=JSON.parse(localStorage.getItem('db')||'[]');bId=blocks.reduce(function(m,b){return Math.max(m,parseInt(b.id.replace('b',''))||0);},0);}catch(e){blocks=[];}
   try{var r=JSON.parse(localStorage.getItem('dr')||'null');if(r){sS=r.s;sE=r.e;}}catch(e){}
+  // 날짜가 바뀌었으면 오늘 데이터 자동 리셋
+  var savedDay=localStorage.getItem('last_day')||'';
+  var todayKey=localDateKey();
+  if(savedDay && savedDay!==todayKey){
+    todos=[]; pT=['','','']; pD=[false,false,false]; blocks=[];
+    localStorage.removeItem('dt'); localStorage.removeItem('pd');
+    localStorage.removeItem('pt'); localStorage.removeItem('db');
+  }
+  localStorage.setItem('last_day', todayKey);
 }
 function save(){
   try{
@@ -58,7 +67,7 @@ function sync(){
   var has=pr.some(function(p){return p.text;})||todos.length||blocks.length;
   if(!has){entries=entries.filter(function(e){return e.date!==dk;});}
   else{
-    var ent={date:dk,displayDate:fmtD(now),priorities:pr,todos:JSON.parse(JSON.stringify(todos)),blocks:JSON.parse(JSON.stringify(blocks)),savedAt:now.toISOString()};
+    var ent={date:dk,displayDate:fmtD(now),priorities:pr,todos:JSON.parse(JSON.stringify(todos)),blocks:JSON.parse(JSON.stringify(blocks)),savedAt:localDateKey(now)+'T'+now.getHours()+':'+pad(now.getMinutes())};
     var ix=entries.findIndex(function(e){return e.date===dk;});
     if(ix>=0)entries[ix]=ent; else entries.unshift(ent);
   }
@@ -113,13 +122,17 @@ function bindReset(){
   if(btnRst) btnRst.addEventListener('click',function(){ if(modal) modal.classList.add('on'); });
   if(cancelBtn) cancelBtn.addEventListener('click',function(){ if(modal) modal.classList.remove('on'); });
   if(okBtn) okBtn.addEventListener('click',function(){
-    todos=[]; pT=['','','']; pD=[false,false,false];
+    todos=[]; pT=['','','']; pD=[false,false,false]; blocks=[];
+    sS=6; sE=22;
     save(); sync();
-    buildPrioUI();
-    renderTodos();
+    buildPrioUI(); renderTodos();
+    // 스케줄 DOM 초기화
+    var cv=qs('#stCv'); if(cv) cv.querySelectorAll('.sb').forEach(function(el){el.remove();});
+    buildSchedAxis();
+    refreshSchedPrio();
     var stamp=qs('#bstamp'); if(stamp) stamp.classList.remove('on');
     if(modal) modal.classList.remove('on');
-    toast('기록이 초기화됐습니다 ↺');
+    toast('오늘 기록이 초기화됐습니다 ↺');
   });
 }
 
@@ -531,7 +544,8 @@ function renderCal(){
   for(var dy=1;dy<=days;dy++){
     (function(day){
       var key=calY+'-'+pad(calM+1)+'-'+pad(day), e=byD[key], pal=gCP(key);
-      var cell=ce('div'); cell.className='cc'+(e?' has':'')+(selDate===key?' sel':'');
+      var today=localDateKey();
+      var cell=ce('div'); cell.className='cc'+(e?' has':'')+(selDate===key?' sel':'')+(key===today?' today':'');
       var dn=ce('span'); dn.className='dn'; dn.textContent=day; cell.appendChild(dn);
       if(e&&e.priorities){
         var dd=ce('div'); dd.className='dots';
@@ -599,26 +613,39 @@ function loadDayForEdit(key){
 /* ═ PWA ═ */
 function bindPWA(){
   var urlEl=qs('#pwaUrl'); if(urlEl) urlEl.textContent=location.hostname||'receipt-khoe.vercel.app';
-  if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone){setInstalled();return;}
+  // 이미 설치된 경우
+  if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone){
+    setInstalled(); return;
+  }
+  var installBtn=qs('#btnInstall');
+  // beforeinstallprompt: Chrome/Edge/Android에서 발생
   window.addEventListener('beforeinstallprompt',function(e){
     e.preventDefault(); deferredInstall=e;
-    var btn=qs('#btnInstall'); if(btn){btn.disabled=false;btn.textContent='설치';}
-    var st=qs('#instStatus'); if(st) st.textContent='설치 준비 완료!';
+    if(installBtn){installBtn.disabled=false;installBtn.textContent='설치';}
+    var st=qs('#instStatus'); if(st) st.textContent='';
   });
-  var installBtn=qs('#btnInstall');
+  // 버튼 클릭
   if(installBtn) installBtn.addEventListener('click',function(){
     if(deferredInstall){
       deferredInstall.prompt();
       deferredInstall.userChoice.then(function(r){
         deferredInstall=null;
-        if(r.outcome==='accepted'){toast('앱 설치 중... 🎉');setInstalled();}
+        if(r.outcome==='accepted'){toast('앱 설치 완료! 🎉');setInstalled();}
         else{var st=qs('#instStatus');if(st)st.textContent='설치를 취소했습니다.';}
       });
     } else {
+      // iOS/Firefox: beforeinstallprompt 미지원 → 수동 안내
       toast('아래 수동 설치 방법을 따라주세요 👇');
+      var st=qs('#instStatus');
+      if(st) st.textContent='이 기기는 위의 수동 설치 방법을 이용해주세요.';
     }
   });
   window.addEventListener('appinstalled',function(){toast('앱 설치 완료! 🎉');setInstalled();});
+  // 초기 버튼 상태: beforeinstallprompt 오기 전까지 안내 문구
+  if(installBtn && installBtn.disabled){
+    var st=qs('#instStatus');
+    if(st) st.textContent='아래 수동 설치 방법을 이용해주세요.';
+  }
 }
 function setInstalled(){
   var c=qs('#pwaCard'), b=qs('#instDone'), s=qs('#instStatus');
