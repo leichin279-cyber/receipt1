@@ -22,6 +22,7 @@ var entries=[], calY, calM, selDate=null;
 var sCtx=null, editBid=null, dragTxt='', deferredInstall=null, schedReady=false;
 
 function pad(n){return String(n).padStart(2,'0');}
+function localDateKey(d){var dt=d||new Date();return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());}
 function snap(h){return Math.round(h*2)/2;}
 function hY(h){return (h-sS)*ROW;}
 function hL(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60);return pad(hh)+':'+(mm?'30':'00');}
@@ -52,7 +53,7 @@ function save(){
   }catch(e){}
 }
 function sync(){
-  var now=new Date(),dk=now.toISOString().slice(0,10);
+  var now=new Date(),dk=window._editingDate||localDateKey(now);
   var pr=pT.map(function(t,i){return{text:t,done:pD[i]};});
   var has=pr.some(function(p){return p.text;})||todos.length||blocks.length;
   if(!has){entries=entries.filter(function(e){return e.date!==dk;});}
@@ -152,8 +153,13 @@ function buildPC(cid, withInp){
         row.appendChild(cb); row.appendChild(tw); row.appendChild(dh);
       } else {
         var sp=ce('span'); sp.className='pmirror'; sp.id='pm-'+idx; sp.textContent=pT[idx]||'';
+        sp.setAttribute('draggable','true');
+        sp.style.cursor='grab';
+        sp.addEventListener('dragstart',(function(ii){return function(e){var v=pT[ii];if(!v){e.preventDefault();return;}dragTxt=v;e.dataTransfer.setData('text/plain',v);};})(idx));
         tw.appendChild(sp);
-        row.appendChild(cb); row.appendChild(tw);
+        var sdh=ce('span'); sdh.className='pdh'; sdh.setAttribute('draggable','true'); sdh.textContent='⠿';
+        sdh.addEventListener('dragstart',(function(ii){return function(e){var v=pT[ii];if(!v){e.preventDefault();return;}dragTxt=v;e.dataTransfer.setData('text/plain',v);};})(idx));
+        row.appendChild(cb); row.appendChild(tw); row.appendChild(sdh);
       }
       pl.appendChild(row);
     })(i);
@@ -234,17 +240,21 @@ function bindReceiptView(){
   if(btnBk) btnBk.addEventListener('click',function(){
     qs('#pg-rcpt').classList.remove('on');
     qs('#pg-todo').classList.add('on');
-    // 탭바 오늘 탭 활성화
     document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
     var todotab=qs('.tab[data-pg="pg-todo"]');
     if(todotab) todotab.classList.add('on');
+    // 수정 모드 종료
+    window._editingDate=null;
+    var ph=qs('.ph h2'); if(ph) ph.textContent='오늘의 기록';
   });
   if(btnSv) btnSv.addEventListener('click', saveImg);
 }
 function showRcpt(){
   var now=new Date();
-  var rvDate=qs('#rvDate'); if(rvDate) rvDate.textContent=fmtD(now);
-  var rvNo=qs('#rvNo'); if(rvNo) rvNo.textContent='NO.'+now.toISOString().slice(0,10).replace(/-/g,'');
+  var displayDate = window._editingDate ? window._editingDate.replace(/-/g,'.') : fmtD(now);
+  var dateKey = window._editingDate || localDateKey(now);
+  var rvDate=qs('#rvDate'); if(rvDate) rvDate.textContent=displayDate;
+  var rvNo=qs('#rvNo'); if(rvNo) rvNo.textContent='NO.'+dateKey.replace(/-/g,'');
   // todos
   var tc=qs('#rvTodos'); if(!tc) return; tc.innerHTML='';
   if(!todos.length){var n=ce('div');n.style.cssText='padding:4px 16px;font-size:12px;color:var(--tx3)';n.textContent='(없음)';tc.appendChild(n);}
@@ -290,10 +300,12 @@ function saveImg(){
     .then(function(c){
       document.body.removeChild(wrap);
       btn.textContent='⬇ 이미지 저장'; btn.disabled=false;
-      var name='diary-'+new Date().toISOString().slice(0,10)+'.png';
+      var name='diary-'+localDateKey()+'.png';
       function dlUrl(url){var a=ce('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();setTimeout(function(){try{document.body.removeChild(a);}catch(e){}},300);}
       if(c.toBlob){c.toBlob(function(blob){var u=URL.createObjectURL(blob);dlUrl(u);setTimeout(function(){URL.revokeObjectURL(u);},1000);},'image/png');}
       else dlUrl(c.toDataURL('image/png'));
+      window._editingDate=null;
+      var ph=qs('.ph h2'); if(ph) ph.textContent='오늘의 기록';
       toast('PNG 저장 완료! 📸');
     }).catch(function(err){
       document.body.removeChild(wrap);
@@ -343,8 +355,16 @@ function closeSign(save){
     var src=qs('#scv'), dst=qs('#scv-prev');
     if(src&&dst){
       var dpr=window.devicePixelRatio||1;
-      dst.width=dst.offsetWidth*dpr; dst.height=dst.offsetHeight*dpr;
-      dst.getContext('2d').drawImage(src,0,0,dst.width,dst.height);
+      var dstW=dst.offsetWidth*dpr, dstH=dst.offsetHeight*dpr;
+      dst.width=dstW; dst.height=dstH;
+      var ctx=dst.getContext('2d');
+      ctx.clearRect(0,0,dstW,dstH);
+      // 비율 유지하며 중앙에 그리기
+      var srcAR=src.width/src.height, dstAR=dstW/dstH;
+      var drawW,drawH,drawX,drawY;
+      if(srcAR>dstAR){drawW=dstW;drawH=dstW/srcAR;drawX=0;drawY=(dstH-drawH)/2;}
+      else{drawH=dstH;drawW=dstH*srcAR;drawY=0;drawX=(dstW-drawW)/2;}
+      ctx.drawImage(src,drawX,drawY,drawW,drawH);
       var h=qs('#signHint'); if(h) h.style.display='none';
     }
   }
@@ -533,13 +553,47 @@ function schedSum(bks){
 function showCalDet(key,noR){
   selDate=key;
   var e=entries.find(function(x){return x.date===key;}), det=qs('#cdet'); if(!det) return;
-  if(!e){det.innerHTML='<div style="padding:14px;text-align:center;color:var(--tx3);font-size:13px;">'+key+' — 기록 없음</div>';if(!noR)renderCal();return;}
+  if(!e){
+    det.innerHTML='<div style="padding:14px;text-align:center;color:var(--tx3);font-size:13px;">'+key+' — 기록 없음</div>';
+    if(!noR)renderCal();return;
+  }
   var dc=e.priorities.filter(function(p){return p.done;}).length, tot=e.priorities.filter(function(p){return p.text;}).length, pal=gCP(key), sg=schedSum(e.blocks||[]);
-  var h='<div class="cdet"><div class="cdh"><span class="cddate">'+(e.displayDate||key)+'</span><span class="cdscore">'+dc+'/'+tot+'</span></div>';
+  var h='<div class="cdet">';
+  h+='<div class="cdh"><span class="cddate">'+(e.displayDate||key)+'</span><span class="cdscore">'+dc+'/'+tot+'</span></div>';
   h+='<div class="cdsec">★ 핵심 3가지</div>';
   e.priorities.filter(function(p){return p.text;}).forEach(function(p,pi){h+='<div class="cdpi"><div class="cdpd" style="background:'+(p.done?pal[pi]:'#ddd')+'"></div><span class="cdpt'+(p.done?' dn':'')+'">'+p.text+'</span></div>';});
   if(sg.length){h+='<div class="cdsec">⏱ 스케줄</div><div>';sg.forEach(function(gp){var col=PALS[gc(gp.text)%PALS.length];h+='<span class="cstag" style="background:'+col.bg+';color:'+col.tx+';">'+hL(gp.startH)+'~'+hL(gp.endH)+' '+gp.text+'</span>';});h+='</div>';}
-  h+='</div>'; det.innerHTML=h; if(!noR) renderCal();
+  h+='<button class="btn-edit-day" data-key="'+key+'" style="margin-top:12px;width:100%;padding:9px;font-size:12px;font-family:inherit;background:none;border:1px solid var(--bd2);border-radius:8px;cursor:pointer;color:var(--tx2);">✏️ 이 날짜 기록 불러와서 수정하기</button>';
+  h+='</div>';
+  det.innerHTML=h;
+  // 수정 버튼 이벤트
+  var editBtn=det.querySelector('.btn-edit-day');
+  if(editBtn) editBtn.addEventListener('click',function(){
+    loadDayForEdit(key);
+  });
+  if(!noR) renderCal();
+}
+
+function loadDayForEdit(key){
+  var e=entries.find(function(x){return x.date===key;}); if(!e) return;
+  // 현재 오늘 데이터를 해당 날짜 데이터로 교체
+  if(!confirm(key+' 날짜의 기록을 불러옵니다.\n현재 작성 중인 내용은 저장되지 않습니다. 계속할까요?')) return;
+  todos=JSON.parse(JSON.stringify(e.todos||[]));
+  pT=e.priorities.map(function(p){return p.text||'';});
+  pD=e.priorities.map(function(p){return p.done||false;});
+  blocks=JSON.parse(JSON.stringify(e.blocks||[]));
+  // 저장 키를 해당 날짜로 오버라이드 (editingDate)
+  window._editingDate=key;
+  save();
+  buildPrioUI(); renderTodos(); renderBlocksFromData(); refreshSchedPrio();
+  // 오늘 탭으로 이동
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  var todotab=qs('.tab[data-pg="pg-todo"]'); if(todotab) todotab.classList.add('on');
+  qs('#pg-todo').classList.add('on');
+  // 헤더에 날짜 표시
+  var ph=qs('.ph h2'); if(ph) ph.textContent='기록 수정: '+key;
+  toast('📅 '+key+' 기록을 불러왔습니다. 수정 후 결제하기를 눌러 저장하세요.');
 }
 
 /* ═ PWA ═ */
