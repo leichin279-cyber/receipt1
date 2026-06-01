@@ -156,3 +156,15 @@ body{font-family:'Courier New',Courier,monospace;font-size:13px;color:var(--tx);
 .tab.on .tab-lb{color:var(--tx);font-weight:700}
 @media(min-width:600px){:root{--tabh:66px}.pgi{padding:18px 18px 0}.card{padding:16px}}
 @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#252525;--bg3:#161616;--bd:#333;--bd2:#444;--tx:#f0f0f0;--tx2:#aaa;--tx3:#666}.rdeco{background:repeating-linear-gradient(90deg,var(--bg3) 0,var(--bg3) 10px,var(--bg) 10px,var(--bg) 20px)}#scv,#scv-prev{background:#2a2a2a}}
+
+/* 오늘 날짜 강조 */
+.cc.today { background: #fff8e0; }
+.cc.today .dn { color: var(--tx); font-weight: 700; }
+.cc.today::after {
+  content: '';
+  display: block;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--red);
+  margin: 1px auto 0;
+}
