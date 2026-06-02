@@ -270,7 +270,6 @@ function refreshSchedPrio(){
 function togP(i){
   if(!pT[i])return;
   pD[i]=!pD[i];refreshSchedPrio();
-  if(pD[i])fireConf();
   save();sync();
 }
 
@@ -357,38 +356,52 @@ function showRcpt(){
   qs('#rvRate').textContent='To-Do '+dc+'/'+todos.length+' ('+(todos.length?Math.round(dc/todos.length*100):0)+'%)';
   var tot=pT.filter(function(t){return t;}).length;
   qs('#rvScore').textContent='핵심 '+pdc+'/'+tot;
+  /* 바코드 생성 */
+  renderBarcode(dk);
   qs('#pg-todo').classList.remove('on');qs('#pg-rcpt').classList.add('on');
   sync();
 }
 function saveImg(){
   var btn=qs('#btnSaveImg');btn.textContent='저장 중...';btn.disabled=true;
-  var area=qs('#rcptArea'),sc=qs('.signcard');
+  var area=qs('#rcptArea');
+  /* 서명이 영수증 안에 있으므로 rcptArea 하나만 캡처 */
+  var hint=qs('#signHint');
+  if(hint)hint.style.display='none'; /* 캡처 시 힌트 숨기기 */
   var wrap=ce('div');
-  wrap.style.cssText='position:fixed;top:-9999px;left:-9999px;width:'+area.offsetWidth+'px;background:#f0f0f0;padding:14px;font-family:Courier New,monospace;';
-  var ac=area.cloneNode(true),scc=sc.cloneNode(true);
-  var oc=qs('#scv-prev'),cc=scc.querySelector('canvas');
-  if(oc&&cc){cc.width=oc.width;cc.height=oc.height;cc.getContext('2d').drawImage(oc,0,0);}
-  scc.querySelectorAll('button,.sighint').forEach(function(b){b.style.display='none';});
-  wrap.appendChild(ac);wrap.appendChild(scc);document.body.appendChild(wrap);
+  wrap.style.cssText='position:fixed;top:-9999px;left:-9999px;background:#ffffff;padding:20px;font-family:Courier New,monospace;';
+  var ac=area.cloneNode(true);
+  /* 복제된 캔버스에 서명 이미지 복사 */
+  var origCv=qs('#scv-prev'),cloneCv=ac.querySelector('#scv-prev');
+  if(origCv&&cloneCv){
+    cloneCv.width=origCv.width;cloneCv.height=origCv.height;
+    cloneCv.getContext('2d').drawImage(origCv,0,0);
+  }
+  /* 힌트 텍스트 숨기기 */
+  var cloneHint=ac.querySelector('#signHint');
+  if(cloneHint)cloneHint.style.display='none';
+  wrap.appendChild(ac);document.body.appendChild(wrap);
   setTimeout(function(){
-    html2canvas(wrap,{backgroundColor:'#f0f0f0',scale:2,useCORS:true,allowTaint:true,logging:false})
+    html2canvas(wrap,{backgroundColor:'#ffffff',scale:2,useCORS:true,allowTaint:true,logging:false})
     .then(function(c){
       document.body.removeChild(wrap);btn.textContent='⬇ 이미지 저장';btn.disabled=false;
+      if(hint)hint.style.display=''; /* 힌트 복원 */
       _editingDate=null;var ph=qs('.ph h2');if(ph)ph.textContent='오늘의 기록';
       var name='diary-'+ldk()+'.png';
       function dlUrl(u){var a=ce('a');a.href=u;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();setTimeout(function(){try{document.body.removeChild(a);}catch(e){}},300);}
       if(c.toBlob){c.toBlob(function(blob){var u=URL.createObjectURL(blob);dlUrl(u);setTimeout(function(){URL.revokeObjectURL(u);},1000);},'image/png');}
       else dlUrl(c.toDataURL('image/png'));
       toast('PNG 저장 완료! 📸');
-    }).catch(function(err){document.body.removeChild(wrap);btn.textContent='⬇ 이미지 저장';btn.disabled=false;console.error(err);toast('저장 실패');});
+    }).catch(function(err){document.body.removeChild(wrap);btn.textContent='⬇ 이미지 저장';btn.disabled=false;if(hint)hint.style.display='';console.error(err);toast('저장 실패');});
   },120);
 }
 
 /* ── 서명 ── */
 function bindSign(){
-  var card=qs('#signPreviewCard'),prev=qs('#scv-prev');
+  /* 서명 영역 클릭 → 서명 모달 */
+  var card=qs('#signPreviewCard'); /* r-sign-section */
+  var prev=qs('#scv-prev');
   if(card)card.addEventListener('click',openSign);
-  if(prev)prev.addEventListener('click',openSign);
+  if(prev)prev.addEventListener('click',function(e){e.stopPropagation();openSign();});
   qs('#signClr').addEventListener('click',function(){var cv=qs('#scv');if(cv&&sCtx)sCtx.clearRect(0,0,cv.offsetWidth,cv.offsetHeight);});
   qs('#signOk').addEventListener('click',function(){closeSign(true);});
   qs('#mSign').addEventListener('click',function(e){if(e.target===this)closeSign(false);});
@@ -727,6 +740,47 @@ function loadDayForEdit(key){
 }
 
 /* ── PWA ── */
+
+
+/* ══ 바코드 생성 (날짜 기반 SVG) ══ */
+function renderBarcode(dk){
+  var el = qs('#rBarcode');
+  var noEl = qs('#rBarcodeNo');
+  if(!el) return;
+
+  /* 날짜 문자열 → 숫자 배열 */
+  var str = (dk || ldk()).replace(/-/g,'') + '0000'; /* YYYYMMDD0000 = 12자리 */
+  /* Code-39 스타일 바코드 SVG 생성 */
+  var bars = makeBars(str);
+  var W = 260, H = 48;
+  var barW = W / bars.length;
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">';
+  bars.forEach(function(b, i){
+    if(b === 1){
+      svg += '<rect x="'+(i*barW).toFixed(2)+'" y="0" width="'+(barW*0.9).toFixed(2)+'" height="'+H+'" fill="#1a1a1a"/>';
+    }
+  });
+  svg += '</svg>';
+  el.innerHTML = svg;
+  if(noEl) noEl.textContent = str;
+}
+
+function makeBars(str){
+  /* 문자마다 고유한 바 패턴 생성 */
+  var patterns = {
+    '0':'1010001','1':'1110001','2':'0110001','3':'1100001',
+    '4':'1011001','5':'0111001','6':'1101001','7':'1001001',
+    '8':'0101001','9':'1100101'
+  };
+  var bars = [1,0,1,0]; /* 시작 패턴 */
+  for(var i=0;i<str.length;i++){
+    var p = patterns[str[i]] || '1010101';
+    for(var j=0;j<p.length;j++) bars.push(parseInt(p[j]));
+    bars.push(0); /* 간격 */
+  }
+  bars.push(1,0,1,0); /* 종료 패턴 */
+  return bars;
+}
 
 /* ══ CSV 내보내기 / 가져오기 ══ */
 function bindCSV(){
