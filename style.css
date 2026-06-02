@@ -525,6 +525,7 @@ input, select, textarea, button {
   overflow: hidden;
 }
 .pwa-appicon img { display: none !important; }
+.pwa-appicon svg { display: block; }
 .pwa-appicon::after {
   content: "";
   display: block;
@@ -543,3 +544,47 @@ input, select, textarea, button {
 .tib { font-size: 0 !important; width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: #888; }
 .tib:hover { color: #1a1a1a; }
 .tib.del:hover { color: #c00; }
+
+/* ══ 후원 메모 ══ */
+.support-note {
+  margin-top: 16px;
+}
+.note-paper {
+  background: #fffef0;
+  border: 1px solid #e8e4c0;
+  border-radius: 4px;
+  padding: 18px 18px 14px;
+  position: relative;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.07);
+  font-family: inherit;
+}
+/* 왼쪽 줄 */
+.note-paper::before {
+  content: '';
+  position: absolute;
+  left: 36px; top: 0; bottom: 0;
+  border-left: 1px solid #f0c0b0;
+}
+.note-paper p {
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: #333;
+  margin-bottom: 8px;
+  padding-left: 20px;
+}
+.note-paper p:last-child { margin-bottom: 0; }
+.note-tip {
+  font-size: 12px !important;
+  color: #888 !important;
+  font-style: italic;
+}
+.note-divider {
+  border-top: 1px dashed #ddd;
+  margin: 10px 0 10px 20px;
+}
+.note-link {
+  color: #0071e3;
+  text-decoration: none;
+  font-weight: 600;
+}
+.note-link:hover { text-decoration: underline; }
