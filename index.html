@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app" id="app">
+<div class="app">
 
 <!-- TAB1: 오늘 -->
 <div class="pg on" id="pg-todo">
@@ -21,7 +21,7 @@
     <section class="card">
       <div class="sl">□ To-Do List</div>
       <div class="tadd"><input id="todoInp" type="text" placeholder="할 일을 마구 적어보세요" autocomplete="off"><button id="todoAddBtn">+</button></div>
-      <div id="tlist"><div class="empty" id="todoEmpty">할 일을 추가해보세요 ✏️</div></div>
+      <div id="tlist"></div>
     </section>
     <section class="card">
       <div class="sl">★ 핵심 3가지</div>
@@ -61,16 +61,22 @@
 <!-- TAB2: 스케줄 -->
 <div class="pg" id="pg-sched">
   <div class="pgi">
-    <div class="ph"><h2>시간 스케줄</h2><button class="btn-rst" id="btnResetSched">↺ 리셋</button></div>
+    <div class="ph"><h2>시간 스케줄</h2></div>
     <section class="card">
-      <div class="sl">★ 핵심 3가지 (탭하면 스케줄에 추가)</div>
+      <div class="sl">★ 핵심 3가지 — 항목을 스케줄로 드래그하거나 탭하세요</div>
       <div class="plist" id="plSched"></div>
     </section>
     <section class="card">
-      <div class="slr"><span class="sl" style="margin:0;border:none;padding:0">⏱ 시간 스케줄</span><button class="btng" id="btnTR">🕐 시간 범위</button></div>
+      <div class="slr">
+        <span class="sl" style="margin:0;border:none;padding:0">⏱ 시간 스케줄</span>
+        <div style="display:flex;gap:6px">
+          <button class="btng btn-rst-sched" id="btnResetSched">↺ 리셋</button>
+          <button class="btng" id="btnTR">🕐 시간 범위</button>
+        </div>
+      </div>
       <div class="stout">
         <div class="stwrap" id="stWrap"><div class="stax" id="stAx"></div><div class="stcv" id="stCv"></div></div>
-        <div class="hint">위 핵심 3가지를 탭하면 스케줄에 추가됩니다 | 빈 칸 탭: 블록 추가 | 길게 탭: 수정/삭제 | ⋮ 드래그: 이동 | 상·하단: 크기</div>
+        <div class="hint">핵심 3가지 탭 또는 드래그 → 스케줄 추가 | 빈 칸 탭: 직접 입력 | 길게 탭: 수정/삭제</div>
       </div>
     </section>
   </div>
@@ -96,21 +102,31 @@
       <div class="pwa-info"><div class="pwa-name">영수증 다이어리</div><div class="pwa-url" id="pwaUrl">receipt-khoe.vercel.app</div></div>
       <button class="pwa-btn" id="btnInstall">설치</button>
     </div>
-    <div class="inst-status" id="instStatus"></div>
+    <div class="inst-status" id="instStatus">아래 방법으로 설치하세요</div>
+    <div class="guide-card">
+      <div class="guide-head">설치 방법</div>
+      <div class="guide-row"><span class="gtag">🍎 iOS</span><span class="gdesc">Safari → 하단 공유(□↑) → <strong>"홈 화면에 추가"</strong></span></div>
+      <div class="guide-row"><span class="gtag">🤖 Android</span><span class="gdesc">Chrome 메뉴(⋮) → <strong>"앱 설치"</strong></span></div>
+      <div class="guide-row"><span class="gtag">💻 Chrome</span><span class="gdesc">주소창 오른쪽 <strong>⊕ 아이콘</strong> 클릭</span></div>
     </div>
   </div>
 </div>
 
 <!-- 모달들 -->
 <div class="mbackdrop" id="mReset">
-  <div class="mbox"><div class="mtitle">↺ 오늘 기록 초기화</div>
-  <p style="font-size:13px;color:var(--tx2);line-height:1.7;margin-bottom:4px">To-Do와 핵심 3가지를 모두 초기화합니다.</p>
+  <div class="mbox"><div class="mtitle">↺ 리셋 확인</div>
+  <p style="font-size:13px;color:var(--tx2);line-height:1.7;margin-bottom:4px">To-Do·핵심 3가지·시간 스케줄을 모두 초기화합니다.</p>
   <div class="mbtns"><button id="mResetCancel">취소</button><button class="mdel" id="mResetOk">초기화</button></div></div>
 </div>
+<div class="mbackdrop" id="mSchedReset">
+  <div class="mbox"><div class="mtitle">↺ 스케줄 리셋</div>
+  <p style="font-size:13px;color:var(--tx2);line-height:1.7;margin-bottom:4px">시간 스케줄을 모두 삭제합니다.</p>
+  <div class="mbtns"><button id="mSchedResetCancel">취소</button><button class="mdel" id="mSchedResetOk">삭제</button></div></div>
+</div>
 <div class="mbackdrop" id="mTR">
-  <div class="mbox"><div class="mtitle">🕐 스케줄 시간 범위</div>
-  <div class="mr"><label>시작 시간</label><select id="trS"></select></div>
-  <div class="mr"><label>종료 시간</label><select id="trE"></select></div>
+  <div class="mbox"><div class="mtitle">🕐 시간 범위</div>
+  <div class="mr"><label>시작</label><select id="trS"></select></div>
+  <div class="mr"><label>종료</label><select id="trE"></select></div>
   <div class="mbtns"><button id="mTRCancel">취소</button><button class="mok" id="mTROk">적용</button></div></div>
 </div>
 <div class="mbackdrop" id="mBlock">
@@ -139,8 +155,7 @@
         <line x1="12" y1="13" x2="16" y2="13"/><circle cx="9" cy="17" r="1.1" fill="currentColor" stroke="none"/>
         <line x1="12" y1="17" x2="15" y2="17"/>
       </svg>
-    </span>
-    <span class="tab-lb">오늘</span>
+    </span><span class="tab-lb">오늘</span>
   </button>
   <button class="tab" data-pg="pg-sched">
     <span class="tab-ic">
@@ -148,8 +163,7 @@
         <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14.5"/>
         <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>
       </svg>
-    </span>
-    <span class="tab-lb">스케줄</span>
+    </span><span class="tab-lb">스케줄</span>
   </button>
   <button class="tab" data-pg="pg-cal">
     <span class="tab-ic">
@@ -160,8 +174,7 @@
         <circle cx="16" cy="15" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="19" r="1.2" fill="currentColor" stroke="none"/>
         <circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none"/>
       </svg>
-    </span>
-    <span class="tab-lb">달력</span>
+    </span><span class="tab-lb">달력</span>
   </button>
   <button class="tab" data-pg="pg-inst">
     <span class="tab-ic">
@@ -170,11 +183,11 @@
         <line x1="12" y1="7" x2="12" y2="15"/><polyline points="9 12 12 15 15 12"/>
         <line x1="9" y1="19" x2="15" y2="19"/>
       </svg>
-    </span>
-    <span class="tab-lb">설치</span>
+    </span><span class="tab-lb">설치</span>
   </button>
 </nav>
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="app.js"></script>
 </body>
