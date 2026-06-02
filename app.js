@@ -126,6 +126,7 @@ function init(){
   bindSchedModal();
   bindCalNav();
   bindPWA();
+  bindCSV();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){});
 }
 
@@ -726,6 +727,151 @@ function loadDayForEdit(key){
 }
 
 /* ── PWA ── */
+
+/* ══ CSV 내보내기 / 가져오기 ══ */
+function bindCSV(){
+  /* 내보내기 버튼 */
+  var expBtn = qs('#btnCsvExport');
+  if(expBtn) expBtn.addEventListener('click', exportCSV);
+
+  /* 가져오기: 파일 선택 */
+  var fileInp = qs('#csvFileInput');
+  if(fileInp) fileInp.addEventListener('change', function(){
+    var file = fileInp.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){ importCSV(e.target.result); };
+    reader.readAsText(file, 'UTF-8');
+    fileInp.value = ''; /* 같은 파일 재선택 가능하도록 초기화 */
+  });
+}
+
+function exportCSV(){
+  var rows = [];
+  /* 헤더 */
+  rows.push(['날짜','종류','내용','완료여부','시작시간','종료시간']);
+
+  /* 오늘 현재 작업 중인 데이터 포함 */
+  var today = ldk();
+  var todayData = {
+    date: today,
+    todos: JSON.parse(JSON.stringify(todos)),
+    priorities: pT.map(function(t,i){return{text:t,done:pD[i]};}),
+    blocks: JSON.parse(JSON.stringify(blocks))
+  };
+
+  /* 달력 entries + 오늘 데이터 합치기 */
+  var allEntries = entries.slice();
+  var todayIdx = allEntries.findIndex(function(e){return e.date===today;});
+  if(todayIdx>=0) allEntries[todayIdx] = Object.assign({}, allEntries[todayIdx], todayData);
+  else if(todayData.todos.length||todayData.priorities.some(function(p){return p.text;})||todayData.blocks.length)
+    allEntries.unshift(todayData);
+
+  allEntries.forEach(function(ent){
+    var d = ent.date||'';
+    /* To-Do */
+    (ent.todos||[]).forEach(function(t){
+      rows.push([d, 'todo', escCSV(t.text), t.done?'완료':'미완', '', '']);
+    });
+    /* 핵심 3가지 */
+    (ent.priorities||[]).forEach(function(p){
+      if(!p.text) return;
+      rows.push([d, '핵심3가지', escCSV(p.text), p.done?'완료':'미완', '', '']);
+    });
+    /* 시간 블록 */
+    (ent.blocks||[]).forEach(function(b){
+      rows.push([d, '스케줄', escCSV(b.text), '', hL(b.startH), hL(b.endH)]);
+    });
+  });
+
+  var csv = rows.map(function(r){ return r.join(','); }).join('\n');
+  var bom = '\uFEFF'; /* UTF-8 BOM — Excel 한글 깨짐 방지 */
+  var blob = new Blob([bom+csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = ce('a');
+  a.href = url;
+  a.download = '영수증다이어리_'+ldk()+'.csv';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);}, 500);
+  toast('CSV 내보내기 완료! 📊');
+}
+
+function escCSV(str){
+  if(!str) return '';
+  str = String(str);
+  if(str.indexOf(',')>=0 || str.indexOf('"')>=0 || str.indexOf('\n')>=0)
+    return '"'+str.replace(/"/g,'""')+'"';
+  return str;
+}
+
+function importCSV(text){
+  /* BOM 제거 */
+  text = text.replace(/^\uFEFF/, '');
+  var lines = text.split(/\r?\n/).filter(function(l){return l.trim();});
+  if(lines.length < 2){ toast('CSV 데이터가 없습니다'); return; }
+
+  /* 헤더 제거 */
+  lines.shift();
+
+  var imported = {}; /* date → {todos, priorities, blocks} */
+
+  lines.forEach(function(line){
+    var cols = parseCSVLine(line);
+    if(cols.length < 4) return;
+    var date=cols[0].trim(), type=cols[1].trim(), content=cols[2].trim(), done=cols[3].trim()==='완료';
+    var startH=cols[4]?cols[4].trim():'', endH=cols[5]?cols[5].trim():'';
+    if(!date||!content) return;
+    if(!imported[date]) imported[date]={date:date,todos:[],priorities:[],blocks:[],displayDate:''};
+    var ent=imported[date];
+    if(!ent.displayDate){ try{ent.displayDate=fmtD(new Date(date+'T12:00:00'));}catch(e){ent.displayDate=date;} }
+    if(type==='todo') ent.todos.push({text:content,done:done});
+    else if(type==='핵심3가지') ent.priorities.push({text:content,done:done});
+    else if(type==='스케줄'&&startH&&endH){
+      ent.blocks.push({id:'b'+(++bId),text:content,startH:timeToH(startH),endH:timeToH(endH)});
+    }
+  });
+
+  var importedList = Object.values(imported);
+  if(!importedList.length){ toast('가져올 데이터가 없습니다'); return; }
+
+  /* 기존 entries와 병합 (같은 날짜면 덮어씀) */
+  importedList.forEach(function(ent){
+    var idx = entries.findIndex(function(x){return x.date===ent.date;});
+    if(idx>=0) entries[idx]=ent; else entries.push(ent);
+  });
+  /* 날짜 내림차순 정렬 */
+  entries.sort(function(a,b){return b.date.localeCompare(a.date);});
+  try{localStorage.setItem('de',JSON.stringify(entries));}catch(e){}
+
+  renderCal();
+  toast('CSV 가져오기 완료! '+importedList.length+'일치 데이터 '+lines.length+'건 🎉');
+}
+
+function parseCSVLine(line){
+  var result=[], current='', inQuote=false;
+  for(var i=0;i<line.length;i++){
+    var c=line[i];
+    if(c==='"'){
+      if(inQuote && line[i+1]==='"'){current+='"';i++;}
+      else inQuote=!inQuote;
+    } else if(c===',' && !inQuote){
+      result.push(current); current='';
+    } else { current+=c; }
+  }
+  result.push(current);
+  return result;
+}
+
+function timeToH(str){
+  /* "HH:MM" → 숫자 (예: "13:30" → 13.5) */
+  if(!str) return sS;
+  var parts=str.split(':');
+  var h=parseInt(parts[0])||0, m=parseInt(parts[1])||0;
+  return h + (m>=30 ? 0.5 : 0);
+}
+
 function bindPWA(){
   var urlEl = qs('#pwaUrl'); if(urlEl) urlEl.textContent = location.hostname;
   var btn    = qs('#btnInstall');
