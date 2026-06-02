@@ -628,7 +628,22 @@ function showCalDet(key,noR){
 }
 function loadDayForEdit(key){
   var e=entries.find(function(x){return x.date===key;});if(!e)return;
-  if(!confirm(key+' 기록을 불러옵니다. 현재 내용은 사라집니다. 계속할까요?'))return;
+  /* 1. 현재 오늘 데이터를 먼저 달력에 저장 (덮어쓰기 방지) */
+  var todayKey=ldk();
+  if(!_editingDate){
+    /* 오늘 작업 중이던 내용을 오늘 날짜로 저장 */
+    var pr=pT.map(function(t,i){return{text:t,done:pD[i]};});
+    var has=pr.some(function(p){return p.text;})||todos.length||blocks.length;
+    if(has){
+      var ent={date:todayKey,displayDate:fmtD(new Date(todayKey+'T12:00:00')),
+        priorities:pr,todos:JSON.parse(JSON.stringify(todos)),
+        blocks:JSON.parse(JSON.stringify(blocks))};
+      var ix=entries.findIndex(function(x){return x.date===todayKey;});
+      if(ix>=0)entries[ix]=ent; else entries.unshift(ent);
+      try{localStorage.setItem('de',JSON.stringify(entries));}catch(err){}
+    }
+  }
+  /* 2. 선택한 날짜 기록 불러오기 */
   todos=JSON.parse(JSON.stringify(e.todos||[]));
   pT=e.priorities.map(function(p){return p.text||'';});
   pD=e.priorities.map(function(p){return p.done||false;});
@@ -639,8 +654,8 @@ function loadDayForEdit(key){
   document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
   var t=qs('.tab[data-pg="pg-todo"]');if(t)t.classList.add('on');
   qs('#pg-todo').classList.add('on');
-  var ph=qs('.ph h2');if(ph)ph.textContent='수정 중: '+key;
-  toast('📅 '+key+' 기록을 불러왔습니다');
+  var ph=qs('.ph h2');if(ph)ph.textContent='✏️ 수정 중: '+key;
+  toast('📅 '+key+' 기록을 불러왔습니다 — 수정 후 결제하기로 저장하세요');
 }
 
 /* ── PWA ── */
