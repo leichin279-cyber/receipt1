@@ -277,6 +277,24 @@ function renderTodos(){
     db.addEventListener('click',function(ev){ev.stopPropagation();todos.splice(i,1);renderTodos();save();sync();});
     ia.appendChild(eb);ia.appendChild(db);
     row.appendChild(cb);row.appendChild(sp);row.appendChild(ia);
+    /* To-Do → 스케줄 드래그 (PC) */
+    row.setAttribute('draggable','true');
+    row.addEventListener('dragstart',(function(txt){return function(e){
+      e.dataTransfer.setData('text/plain',txt);
+      e.dataTransfer.effectAllowed='copy';
+    };})(t.text));
+    /* To-Do → 스케줄 터치 (모바일) */
+    (function(txt){
+      var tt=null;
+      row.addEventListener('touchstart',function(){
+        tt=setTimeout(function(){
+          window._pendingPrio=txt;
+          toast('"'+txt.slice(0,10)+'" — 스케줄 탭 빈 칸을 탭하세요');
+        },400);
+      },{passive:true});
+      row.addEventListener('touchend',function(){clearTimeout(tt);},{passive:true});
+      row.addEventListener('touchmove',function(){clearTimeout(tt);},{passive:true});
+    })(t.text);
     l.appendChild(row);
   });
 }
