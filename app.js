@@ -286,15 +286,7 @@ function renderTodos(){
     var cb=ce('div');cb.className='tcb';
     cb.addEventListener('click',function(ev){ev.stopPropagation();todos[i].done=!todos[i].done;renderTodos();save();sync();});
     var sp=ce('span');sp.className='titxt';sp.textContent=t.text;
-    var ia=ce('div');ia.className='tia';
-    var eb=ce('button');eb.className='tib edit';eb.title='수정';
-    eb.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    eb.addEventListener('click',function(ev){ev.stopPropagation();var nv=prompt('수정:',t.text);if(nv&&nv.trim()){todos[i].text=nv.trim();renderTodos();save();sync();}});
-    var db=ce('button');db.className='tib del';db.title='삭제';
-    db.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
-    db.addEventListener('click',function(ev){ev.stopPropagation();todos.splice(i,1);renderTodos();save();sync();});
-    ia.appendChild(eb);ia.appendChild(db);
-    row.appendChild(cb);row.appendChild(sp);row.appendChild(ia);
+    row.appendChild(cb);row.appendChild(sp);
     /* To-Do → 스케줄 드래그 (PC) */
     row.setAttribute('draggable','true');
     row.addEventListener('dragstart',(function(txt){return function(e){
