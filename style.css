@@ -1,6 +1,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{color-scheme:light}
 :root{--bg:#fff;--bg2:#f8f8f8;--bg3:#efefef;--bd:#e4e4e4;--bd2:#d0d0d0;--tx:#1a1a1a;--tx2:#555;--tx3:#aaa;--red:#e74c3c;--blue:#0071e3;--r:10px;--tabh:62px;--safe:env(safe-area-inset-bottom,0px);--maxw:520px}
-html,body{height:100%;background:var(--bg3)}
+html,body{height:100%;background:var(--bg3);color-scheme:light}
 body{font-family:'Courier New',Courier,monospace;font-size:13px;color:var(--tx);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 .app{max-width:var(--maxw);margin:0 auto;min-height:100dvh;position:relative;background:var(--bg3)}
 .pg{display:none;overflow-y:auto;padding-bottom:calc(var(--tabh) + var(--safe) + 16px)}.pg.on{display:block}
@@ -155,7 +156,7 @@ body{font-family:'Courier New',Courier,monospace;font-size:13px;color:var(--tx);
 .tab-lb{font-size:10px;color:var(--tx3);font-family:inherit;letter-spacing:.3px;transition:color .15s}
 .tab.on .tab-lb{color:var(--tx);font-weight:700}
 @media(min-width:600px){:root{--tabh:66px}.pgi{padding:18px 18px 0}.card{padding:16px}}
-@media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#252525;--bg3:#161616;--bd:#333;--bd2:#444;--tx:#f0f0f0;--tx2:#aaa;--tx3:#666}#scv,}
+
 
 /* 오늘 날짜 강조 */
 .cc.today { background: #fff8e0; }
@@ -272,15 +273,7 @@ body{font-family:'Courier New',Courier,monospace;font-size:13px;color:var(--tx);
 .rowb { display:flex; gap:10px; margin-top:16px; margin-bottom:8px; max-width:400px; margin-left:auto; margin-right:auto; }
 
 /* 다크모드에서도 영수증은 항상 흰색 */
-@media(prefers-color-scheme:dark){
-  .receipt { background:#ffffff !important; color:#1a1a1a !important; }
-  .receipt * { color:#1a1a1a !important; }
-  .receipt .rdt, .receipt .rsec, .receipt .rfmsg, .receipt .rfno,
-  .receipt .rdate, .receipt .rshop, .receipt .r-sign-label, .receipt .r-sign-hint { color:#999 !important; }
-  .receipt .rdiv, .receipt .rdiv-dot { border-color:#ccc !important; }
-  .receipt .rtxt.dn, .receipt .rpt.dn { color:#aaa !important; }
-  #scv-prev { background:#ffffff !important; }
-}
+
 
 /* ══════════════════════════════
    영수증 — 실제 영수증 스타일
@@ -487,10 +480,7 @@ body{font-family:'Courier New',Courier,monospace;font-size:13px;color:var(--tx);
 }
 
 /* 다크모드에서도 영수증은 항상 흰색 */
-@media (prefers-color-scheme: dark) {
-  .receipt, .receipt * { background: #ffffff !important; }
-  .receipt { color: #1a1a1a !important; }
-}
+
 
 /* 바코드 */
 .r-barcode {
@@ -507,4 +497,13 @@ body{font-family:'Courier New',Courier,monospace;font-size:13px;color:var(--tx);
   color: #aaa !important;
   margin-bottom: 12px;
   font-family: 'Courier New', monospace;
+}
+
+/* ══ 라이트모드 강제 ══ */
+input, select, textarea, button {
+  color-scheme: light;
+}
+.app {
+  background: var(--bg3);
+  color: var(--tx);
 }
