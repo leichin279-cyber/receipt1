@@ -41,23 +41,75 @@
 <!-- TAB1b: 영수증 -->
 <div class="pg" id="pg-rcpt">
   <div class="pgi">
-    <div class="receipt" id="rcptArea" style="background:#fff;color:#1a1a1a;">
+
+    <!-- 캡처 대상: 영수증 전체 (서명 포함) -->
+    <div class="receipt" id="rcptArea">
+
+      <!-- 상단 지그재그 -->
       <div class="rdeco t"></div>
-      <div class="rtop"><div class="rdt" id="rvDate"></div><h1>DAILY RECEIPT</h1><div class="rdt">자기계발 영수증</div></div>
-      <div class="rsec">□ TO-DO LIST</div><div id="rvTodos"></div>
-      <div class="rdiv"></div>
-      <div class="rsec">★ 핵심 3가지</div><div id="rvPrios"></div>
-      <div class="rdiv"></div>
-      <div class="rrow"><span>완료율</span><span id="rvRate"></span></div>
-      <div class="rrow b"><span>오늘의 달성도</span><span id="rvScore"></span></div>
-      <div class="rfoot"><div class="rfmsg">★ 오늘도 수고했습니다 ★</div><div class="rfno" id="rvNo"></div></div>
+
+      <!-- 헤더 -->
+      <div class="rtop">
+        <div class="rshop-name">✦ 자기계발 영수증 ✦</div>
+        <div class="rdate" id="rvDate"></div>
+        <div class="rtitle">DAILY RECEIPT</div>
+        <div class="rno" id="rvNo"></div>
+      </div>
+
+      <!-- 구분선 -->
+      <div class="rdiv-eq"></div>
+
+      <!-- To-Do -->
+      <div class="rsec-wrap">
+        <div class="rsec-head">□ TO-DO LIST</div>
+        <div id="rvTodos"></div>
+      </div>
+
+      <div class="rdiv-dot"></div>
+
+      <!-- 핵심 3가지 -->
+      <div class="rsec-wrap">
+        <div class="rsec-head">★ 핵심 3가지</div>
+        <div id="rvPrios"></div>
+      </div>
+
+      <!-- 구분선 -->
+      <div class="rdiv-eq"></div>
+
+      <!-- 합계 -->
+      <div class="r-summary">
+        <div class="rrow"><span>To-Do 완료율</span><span id="rvRate"></span></div>
+        <div class="rrow b"><span>★ 핵심 달성도</span><span id="rvScore"></span></div>
+      </div>
+
+      <!-- 구분선 -->
+      <div class="rdiv-dot"></div>
+
+      <!-- 서명란 (영수증 안) -->
+      <div class="r-sign-section" id="signPreviewCard">
+        <div class="r-sign-row">
+          <span class="r-sign-label">SIGNATURE</span>
+          <span class="r-sign-hint" id="signHint">✍️ 탭하여 서명</span>
+        </div>
+        <div class="r-sign-box">
+          <canvas id="scv-prev" width="400" height="56"></canvas>
+        </div>
+      </div>
+
+      <!-- 하단 푸터: 바코드 -->
+      <div class="rfoot">
+        <div class="rdiv-dot" style="margin:0 0 10px"></div>
+        <div class="r-barcode" id="rBarcode">
+          <!-- JS로 날짜 기반 바코드 생성 -->
+        </div>
+        <div class="r-barcode-no" id="rBarcodeNo"></div>
+      </div>
+
+      <!-- 하단 지그재그 -->
       <div class="rdeco b"></div>
-    </div>
-    <div class="signcard" id="signPreviewCard">
-      <div class="sigl">SIGNATURE <span class="sigsub">(탭하여 서명)</span></div>
-      <canvas id="scv-prev" width="400" height="70"></canvas>
-      <div class="sighint" id="signHint">여기를 탭하여 서명하세요 ✍️</div>
-    </div>
+    </div><!-- /receipt -->
+
+    <!-- 버튼 -->
     <div class="rowb">
       <button class="btno" id="btnBack">← 뒤로가기</button>
       <button class="btnp" id="btnSaveImg" style="margin-top:0">⬇ 이미지 저장</button>
