@@ -96,18 +96,40 @@
 <div class="pg" id="pg-inst">
   <div class="pgi">
     <div class="ph"><h2>앱 설치</h2></div>
+
+    <!-- 이미 설치됨 -->
     <div class="inst-done" id="instDone">✅ 앱이 설치되어 있습니다</div>
+
+    <!-- 설치 카드 -->
     <div class="pwa-card" id="pwaCard">
       <div class="pwa-appicon"><img src="/icons/icon-192.png" alt="" onerror="this.parentElement.textContent='📋'"></div>
-      <div class="pwa-info"><div class="pwa-name">영수증 다이어리</div><div class="pwa-url" id="pwaUrl">receipt-khoe.vercel.app</div></div>
-      <button class="pwa-btn" id="btnInstall">설치</button>
+      <div class="pwa-info">
+        <div class="pwa-name">영수증 다이어리</div>
+        <div class="pwa-url" id="pwaUrl">receipt-khoe.vercel.app</div>
+      </div>
+      <button class="pwa-btn" id="btnInstall" disabled>준비 중</button>
     </div>
-    <div class="inst-status" id="instStatus">아래 방법으로 설치하세요</div>
-    <div class="guide-card">
-      <div class="guide-head">설치 방법</div>
-      <div class="guide-row"><span class="gtag">🍎 iOS</span><span class="gdesc">Safari → 하단 공유(□↑) → <strong>"홈 화면에 추가"</strong></span></div>
-      <div class="guide-row"><span class="gtag">🤖 Android</span><span class="gdesc">Chrome 메뉴(⋮) → <strong>"앱 설치"</strong></span></div>
-      <div class="guide-row"><span class="gtag">💻 Chrome</span><span class="gdesc">주소창 오른쪽 <strong>⊕ 아이콘</strong> 클릭</span></div>
+
+    <!-- 상태 메시지 -->
+    <div class="inst-status" id="instStatus"></div>
+
+    <!-- iOS용 안내 (iOS에서만 표시) -->
+    <div class="ios-guide" id="iosGuide" style="display:none">
+      <div class="guide-card">
+        <div class="guide-head">📱 iPhone / iPad 설치 방법</div>
+        <div class="guide-row">
+          <span class="gtag">1단계</span>
+          <span class="gdesc">Safari 브라우저로 이 페이지를 여세요</span>
+        </div>
+        <div class="guide-row">
+          <span class="gtag">2단계</span>
+          <span class="gdesc">하단 가운데 공유 버튼(□↑)을 누르세요</span>
+        </div>
+        <div class="guide-row">
+          <span class="gtag">3단계</span>
+          <span class="gdesc"><strong>"홈 화면에 추가"</strong>를 탭하세요</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
