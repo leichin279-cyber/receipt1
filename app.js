@@ -1,16 +1,22 @@
 /* 영수증 다이어리 app.js v12 */
 
-/* ★ beforeinstallprompt는 페이지 로드 직후 한 번만 발생
-   IIFE 밖에서 즉시 잡아야 놓치지 않음 */
-var _installEvent = null;
-window.addEventListener('beforeinstallprompt', function(e){
-  e.preventDefault();
-  _installEvent = e;
-  /* 버튼이 이미 렌더된 경우 즉시 활성화 */
+/* ══ PWA 설치 이벤트를 최상단에서 즉시 캐치 ══
+   DOMContentLoaded보다 beforeinstallprompt가 먼저 올 수 있으므로
+   스크립트 최상단에서 window에 바로 등록 */
+var _pwaPrompt = null;  // 설치 이벤트 보관
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();        // 브라우저 기본 배너 숨기기
+  _pwaPrompt = e;            // 이벤트 보관
+  /* 버튼이 이미 DOM에 있으면 즉시 활성화 */
   var btn = document.getElementById('btnInstall');
   var st  = document.getElementById('instStatus');
-  if(btn){ btn.disabled=false; btn.textContent='📲 설치하기'; btn.style.background='#0071e3'; }
-  if(st)  st.textContent = '버튼을 눌러 홈 화면에 설치하세요!';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '📲 설치하기';
+    btn.style.cssText = 'background:#0071e3;color:#fff;border:none;border-radius:20px;padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;';
+  }
+  if (st) st.textContent = '버튼을 눌러 홈 화면에 설치하세요!';
 });
 
 (function(){
@@ -34,7 +40,7 @@ var ROW=32, sS=6, sE=22;
 var todos=[], pT=['','',''], pD=[false,false,false];
 var blocks=[], bId=0, cMap={}, cN=0;
 var entries=[], calY, calM, selDate=null;
-var sCtx=null, editBid=null, deferredInstall=null;
+var sCtx=null, editBid=null;
 var _editingDate=null;
 
 /* ── 유틸 ── */
@@ -721,82 +727,79 @@ function loadDayForEdit(key){
 
 /* ── PWA ── */
 function bindPWA(){
-  var urlEl=qs('#pwaUrl'); if(urlEl) urlEl.textContent=location.hostname;
-  var btn=qs('#btnInstall');
-  var status=qs('#instStatus');
-  var guide=qs('#installGuide');
-  var guideTitle=qs('#guideTitle');
-  var guideSteps=qs('#guideSteps');
+  var urlEl = qs('#pwaUrl'); if(urlEl) urlEl.textContent = location.hostname;
+  var btn    = qs('#btnInstall');
+  var status = qs('#instStatus');
+  var guide  = qs('#installGuide');
 
-  /* ── 이미 설치된 경우 ── */
+  /* 이미 설치된 경우 */
   if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
     setInstalled(); return;
   }
 
-  /* ── iOS: beforeinstallprompt 없음 ── */
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if(isIOS){
+  /* iOS: 자동 설치 불가 */
+  if(/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream){
     if(btn){
-      btn.textContent='설치 방법 보기';
-      btn.style.cssText='background:#0071e3;color:#fff;border:none;border-radius:20px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;';
-      btn.addEventListener('click', function(){
-        if(guide) guide.style.display='block';
-      });
+      btn.textContent = '설치 방법 보기';
+      btn.style.cssText = 'background:#0071e3;color:#fff;border:none;border-radius:20px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;';
+      btn.addEventListener('click', function(){ if(guide) guide.style.display='block'; });
     }
-    if(guideTitle) guideTitle.textContent='📱 iPhone / iPad 설치 방법';
-    if(guideSteps) guideSteps.innerHTML=
-      '<div class="guide-row"><span class="gtag">1단계</span><span class="gdesc">Safari 브라우저로 이 페이지를 여세요</span></div>'+
-      '<div class="guide-row"><span class="gtag">2단계</span><span class="gdesc">하단 가운데 공유 버튼 (□↑) 을 누르세요</span></div>'+
-      '<div class="guide-row"><span class="gtag">3단계</span><span class="gdesc"><strong>"홈 화면에 추가"</strong> 를 탭하세요</span></div>';
-    if(status) status.textContent='버튼을 눌러 설치 방법을 확인하세요.';
+    if(status) status.textContent = '아래 방법으로 홈 화면에 추가하세요.';
+    if(guide){
+      guide.style.display = 'block';
+      var gt = qs('#guideTitle'), gs = qs('#guideSteps');
+      if(gt) gt.textContent = '📱 iPhone / iPad 설치 방법';
+      if(gs) gs.innerHTML =
+        '<div class="guide-row"><span class="gtag">1단계</span><span class="gdesc">Safari로 이 페이지를 여세요</span></div>'+
+        '<div class="guide-row"><span class="gtag">2단계</span><span class="gdesc">하단 공유(□↑) 버튼을 누르세요</span></div>'+
+        '<div class="guide-row"><span class="gtag">3단계</span><span class="gdesc"><strong>"홈 화면에 추가"</strong>를 탭하세요</span></div>';
+    }
     return;
   }
 
-  /* ── Android/PC Chrome/Edge ──
-     _installEvent: IIFE 밖에서 이미 잡아둔 이벤트 (놓친 경우 대비) */
-  if(_installEvent) deferredInstall = _installEvent;
-
-  /* 버튼 상태: 이벤트가 이미 왔으면 즉시 활성화 */
-  if(deferredInstall){
-    if(btn){ btn.disabled=false; btn.textContent='📲 설치하기'; btn.style.background='#0071e3'; }
-    if(status) status.textContent='버튼을 눌러 홈 화면에 설치하세요!';
-  } else {
-    if(btn){ btn.textContent='설치'; btn.style.background='#0071e3'; }
-    if(status) status.textContent='버튼을 눌러 설치하세요.';
+  /* Android / Chrome / Edge
+     ─────────────────────────────────────────────────
+     _pwaPrompt: 최상단에서 이미 잡아뒀을 수 있음
+     잡혀 있으면 버튼 즉시 활성화, 없으면 이벤트 대기 */
+  function activateBtn(){
+    if(!btn) return;
+    btn.disabled   = false;
+    btn.textContent = '📲 설치하기';
+    btn.style.cssText = 'background:#0071e3;color:#fff;border:none;border-radius:20px;padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;';
+    if(status) status.textContent = '버튼을 눌러 홈 화면에 설치하세요!';
   }
 
-  /* beforeinstallprompt 재등록 (아직 안 온 경우) */
-  window.addEventListener('beforeinstallprompt', function(e){
-    e.preventDefault(); deferredInstall=e;
-    if(btn){ btn.disabled=false; btn.textContent='📲 설치하기'; }
-    if(status) status.textContent='버튼을 눌러 홈 화면에 설치하세요!';
-  });
+  if(_pwaPrompt){
+    activateBtn();
+  } else {
+    if(btn)    { btn.textContent='설치'; }
+    if(status) { status.textContent=''; }
+    /* 이벤트가 나중에 오는 경우 */
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault(); _pwaPrompt = e; activateBtn();
+    });
+  }
 
-  /* ── 버튼 클릭: 설치 다이얼로그 즉시 호출 ── */
+  /* 버튼 클릭 → 설치 창 열기 */
   if(btn) btn.addEventListener('click', function(){
-    if(deferredInstall){
-      deferredInstall.prompt();
-      deferredInstall.userChoice.then(function(r){
-        if(r.outcome==='accepted'){
-          toast('앱 설치 완료! 🎉'); setInstalled();
+    if(_pwaPrompt){
+      _pwaPrompt.prompt();
+      _pwaPrompt.userChoice.then(function(r){
+        _pwaPrompt = null;
+        if(r.outcome === 'accepted'){
+          toast('앱 설치 완료! 🎉');
+          setInstalled();
         } else {
-          deferredInstall=null;
-          if(status) status.textContent='설치를 취소했습니다.';
-          window.addEventListener('beforeinstallprompt',function(e2){
-            e2.preventDefault(); deferredInstall=e2;
-            if(btn) btn.textContent='📲 설치하기';
-            if(status) status.textContent='버튼을 눌러 다시 설치하세요.';
-          },{once:true});
+          if(status) status.textContent = '설치를 취소했습니다.';
+          /* 취소 후 재설치 가능하도록 다시 대기 */
+          window.addEventListener('beforeinstallprompt', function(e2){
+            e2.preventDefault(); _pwaPrompt = e2; activateBtn();
+          }, {once: true});
         }
       });
     } else {
-      /* 이벤트 미발생: 브라우저 조건 미충족 */
-      if(status) status.textContent='잠시 후 다시 눌러보세요.';
-      if(guide) guide.style.display='block';
-      if(guideTitle) guideTitle.textContent='설치 방법';
-      if(guideSteps) guideSteps.innerHTML=
-        '<div class="guide-row"><span class="gtag">Android</span><span class="gdesc">Chrome 메뉴(⋮) → <strong>"앱 설치"</strong></span></div>'+
-        '<div class="guide-row"><span class="gtag">PC Chrome</span><span class="gdesc">주소창 오른쪽 <strong>⊕ 아이콘</strong> 클릭</span></div>';
+      /* 브라우저 조건 미충족 시 안내 */
+      if(status) status.textContent = '설치 조건이 충족되지 않았습니다. 잠시 후 다시 눌러주세요.';
     }
   });
 
