@@ -214,10 +214,7 @@ function buildPC(cid,withInp){
         sp.textContent=pT[idx]||'(비어있음)';
         sp.style.cssText='flex:1;font-size:12px;color:var(--tx2);font-family:inherit;cursor:pointer;';
         tw.appendChild(sp);
-        /* + 버튼: 탭하면 빈 슬롯에 추가 */
-        var addBtn=ce('button');addBtn.className='prio-add-btn';
-        addBtn.textContent='+ 추가';
-        addBtn.style.cssText='font-size:11px;font-family:inherit;background:var(--blue);color:#fff;border:none;border-radius:12px;padding:3px 10px;cursor:pointer;flex-shrink:0;margin-left:6px;';
+        /* + 버튼 없음: 항목 탭으로 추가 */
         var addFn=(function(ii){return function(e){
           e.stopPropagation();
           var v=pT[ii];
@@ -226,7 +223,6 @@ function buildPC(cid,withInp){
           addBlock(v,sh,Math.min(sh+1,sE));
           toast('"'+v.slice(0,10)+'" 스케줄에 추가됨 ✓');
         };})(idx);
-        addBtn.addEventListener('click',addFn);
         /* 드래그 (PC) */
         row.setAttribute('draggable','true');
         row.addEventListener('dragstart',(function(ii){return function(e){
@@ -248,7 +244,7 @@ function buildPC(cid,withInp){
           row.addEventListener('touchend',function(){clearTimeout(touchTimer);});
           row.addEventListener('touchmove',function(){clearTimeout(touchTimer);},{passive:true});
         })(idx);
-        row.appendChild(cb);row.appendChild(tw);row.appendChild(addBtn);
+        row.appendChild(cb);row.appendChild(tw);
       }
       pl.appendChild(row);
     })(i);
@@ -291,9 +287,11 @@ function renderTodos(){
     cb.addEventListener('click',function(ev){ev.stopPropagation();todos[i].done=!todos[i].done;renderTodos();save();sync();});
     var sp=ce('span');sp.className='titxt';sp.textContent=t.text;
     var ia=ce('div');ia.className='tia';
-    var eb=ce('button');eb.className='tib';eb.textContent='✏️';
+    var eb=ce('button');eb.className='tib edit';eb.title='수정';
+    eb.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     eb.addEventListener('click',function(ev){ev.stopPropagation();var nv=prompt('수정:',t.text);if(nv&&nv.trim()){todos[i].text=nv.trim();renderTodos();save();sync();}});
-    var db=ce('button');db.className='tib del';db.textContent='🗑️';
+    var db=ce('button');db.className='tib del';db.title='삭제';
+    db.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
     db.addEventListener('click',function(ev){ev.stopPropagation();todos.splice(i,1);renderTodos();save();sync();});
     ia.appendChild(eb);ia.appendChild(db);
     row.appendChild(cb);row.appendChild(sp);row.appendChild(ia);
@@ -460,33 +458,36 @@ function buildSchedAxis(){
   /* 드래그 이벤트는 여기서 등록 */
   attachSchedDrop();
 }
-var _dropAttached=false;
 function attachSchedDrop(){
-  var cv=qs('#stCv');if(!cv||_dropAttached)return;
-  _dropAttached=true;
+  var cv=qs('#stCv'); if(!cv) return;
+  /* 이벤트 중복 방지: 기존 이벤트 제거 위해 clone으로 교체 */
+  var fresh=cv.cloneNode(false);
+  /* 기존 블록 DOM 이동 */
+  while(cv.firstChild) fresh.appendChild(cv.firstChild);
+  cv.parentNode.replaceChild(fresh,cv);
+  cv=fresh;
 
-  /* PC: HTML5 drag & drop */
+  /* PC: drag & drop */
   cv.addEventListener('dragover',function(e){e.preventDefault();e.dataTransfer.dropEffect='copy';});
   cv.addEventListener('drop',function(e){
     e.preventDefault();
     var txt=e.dataTransfer.getData('text/plain');
-    if(!txt)return;
+    if(!txt) return;
     var r=cv.getBoundingClientRect(),sh=snap(Math.max(sS,Math.min(sE-.5,(e.clientY-r.top)/ROW+sS)));
     addBlock(txt,sh,Math.min(sh+1,sE));
     toast('"'+txt.slice(0,10)+'" 추가됨 ✓');
   });
 
-  /* 모바일: 핵심3가지 + 버튼 탭 + 빈칸 탭 처리 */
+  /* 모바일: 탭으로 블록 추가 */
   var tapT=null,tapY=0;
   cv.addEventListener('pointerdown',function(e){
-    if(e.target!==cv&&!e.target.classList.contains('sthl'))return;
-    tapY=e.clientY;tapT=setTimeout(function(){tapT=null;},400);
+    if(e.target!==cv&&!e.target.classList.contains('sthl')) return;
+    tapY=e.clientY; tapT=setTimeout(function(){tapT=null;},400);
   });
   cv.addEventListener('pointerup',function(e){
-    if(!tapT)return;clearTimeout(tapT);tapT=null;
-    if(Math.abs(e.clientY-tapY)>8)return;
+    if(!tapT) return; clearTimeout(tapT); tapT=null;
+    if(Math.abs(e.clientY-tapY)>8) return;
     var r=cv.getBoundingClientRect(),sh=snap(Math.max(sS,Math.min(sE-.5,(e.clientY-r.top)/ROW+sS)));
-    /* _pendingPrio가 있으면 (모바일 핵심3가지 탭 후 빈칸 탭) */
     if(window._pendingPrio){
       addBlock(window._pendingPrio,sh,Math.min(sh+1,sE));
       toast('"'+window._pendingPrio.slice(0,10)+'" 추가됨 ✓');
