@@ -17,7 +17,14 @@
 <!-- TAB1: 오늘 -->
 <div class="pg on" id="pg-todo">
   <div class="pgi">
-    <div class="ph"><h2>오늘의 기록</h2><button class="btn-rst" id="btnReset">↺ 리셋</button></div>
+    <div class="ph">
+      <h2>오늘의 기록</h2>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn-rst" id="btnCsvExport" title="CSV 내보내기">⬇ CSV</button>
+        <label class="btn-rst" id="btnCsvImportLabel" title="CSV 가져오기" style="cursor:pointer;margin:0;">⬆ CSV<input type="file" id="csvFileInput" accept=".csv" style="display:none"></label>
+        <button class="btn-rst" id="btnReset">↺ 리셋</button>
+      </div>
+    </div>
     <section class="card">
       <div class="sl">□ To-Do List</div>
       <div class="tadd"><input id="todoInp" type="text" placeholder="할 일을 마구 적어보세요" autocomplete="off"><button id="todoAddBtn">+</button></div>
@@ -34,7 +41,7 @@
 <!-- TAB1b: 영수증 -->
 <div class="pg" id="pg-rcpt">
   <div class="pgi">
-    <div class="receipt" id="rcptArea">
+    <div class="receipt" id="rcptArea" style="background:#fff;color:#1a1a1a;">
       <div class="rdeco t"></div>
       <div class="rtop"><div class="rdt" id="rvDate"></div><h1>DAILY RECEIPT</h1><div class="rdt">자기계발 영수증</div></div>
       <div class="rsec">□ TO-DO LIST</div><div id="rvTodos"></div>
