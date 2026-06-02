@@ -708,24 +708,51 @@ function loadDayForEdit(key){
 /* ── PWA ── */
 function bindPWA(){
   var urlEl=qs('#pwaUrl');if(urlEl)urlEl.textContent=location.hostname;
-  if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone){setInstalled();return;}
-  window.addEventListener('beforeinstallprompt',function(e){
-    e.preventDefault();deferredInstall=e;
-    var btn=qs('#btnInstall');if(btn){btn.style.background='var(--blue)';btn.textContent='설치';}
-    var st=qs('#instStatus');if(st)st.textContent='설치 준비 완료! 버튼을 눌러 설치하세요.';
-  });
+  /* 이미 설치된 경우 */
+  if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone){
+    setInstalled();return;
+  }
   var installBtn=qs('#btnInstall');
+  var instStatus=qs('#instStatus');
+
+  /* beforeinstallprompt: Chrome/Edge/Android에서 PWA 설치 조건 충족 시 발생 */
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();
+    deferredInstall=e;
+    /* 버튼 활성화 */
+    if(installBtn){
+      installBtn.disabled=false;
+      installBtn.style.cssText='background:#0071e3;color:#fff;border:none;border-radius:20px;padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;';
+      installBtn.textContent='설치';
+    }
+    if(instStatus)instStatus.textContent='설치 준비 완료! 설치 버튼을 누르세요.';
+  });
+
+  /* 버튼 클릭 */
   if(installBtn)installBtn.addEventListener('click',function(){
     if(deferredInstall){
+      /* 브라우저 설치 다이얼로그 즉시 호출 */
       deferredInstall.prompt();
       deferredInstall.userChoice.then(function(r){
         deferredInstall=null;
-        if(r.outcome==='accepted'){toast('앱 설치 중... 🎉');setInstalled();}
-        else{var st=qs('#instStatus');if(st)st.textContent='설치를 취소했습니다.';}
+        if(r.outcome==='accepted'){
+          toast('앱 설치 완료! 🎉');
+          setInstalled();
+        } else {
+          if(instStatus)instStatus.textContent='설치를 취소했습니다.';
+        }
       });
-    }else{toast('아래 수동 설치 방법을 이용해주세요 👇');}
+    } else {
+      /* beforeinstallprompt 미지원 환경 (iOS 등) → 수동 안내 */
+      if(instStatus)instStatus.textContent='아래 방법으로 수동 설치해주세요.';
+      toast('아래 설치 방법을 따라주세요 👇');
+    }
   });
-  window.addEventListener('appinstalled',function(){toast('앱 설치 완료! 🎉');setInstalled();});
+
+  window.addEventListener('appinstalled',function(){
+    toast('앱 설치 완료! 🎉');
+    setInstalled();
+  });
 }
 function setInstalled(){
   var c=qs('#pwaCard'),b=qs('#instDone'),s=qs('#instStatus');
