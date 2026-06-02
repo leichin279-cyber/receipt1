@@ -42,15 +42,17 @@ function load(){
   try{pT=JSON.parse(localStorage.getItem('pt')||'["","",""]');}catch(e){pT=['','',''];}
   try{blocks=JSON.parse(localStorage.getItem('db')||'[]');bId=blocks.reduce(function(m,b){return Math.max(m,parseInt(b.id.replace('b',''))||0);},0);}catch(e){blocks=[];}
   try{var r=JSON.parse(localStorage.getItem('dr')||'null');if(r){sS=r.s;sE=r.e;}}catch(e){}
-  // 날짜가 바뀌었으면 오늘 데이터 자동 리셋
-  var savedDay=localStorage.getItem('last_day')||'';
+  // ── 작업공간 날짜 검사: 어제 작업한 내용이면 모두 초기화 ──
+  var workDay=localStorage.getItem('work_day')||'';
   var todayKey=localDateKey();
-  if(savedDay && savedDay!==todayKey){
+  if(workDay!==todayKey){
+    // 날짜가 다름 = 오늘 처음 = 작업공간 전부 리셋 (달력 entries는 보존)
     todos=[]; pT=['','','']; pD=[false,false,false]; blocks=[];
+    sS=6; sE=22;
     localStorage.removeItem('dt'); localStorage.removeItem('pd');
     localStorage.removeItem('pt'); localStorage.removeItem('db');
+    localStorage.setItem('work_day', todayKey);
   }
-  localStorage.setItem('last_day', todayKey);
 }
 function save(){
   try{
@@ -59,6 +61,7 @@ function save(){
     localStorage.setItem('pt',JSON.stringify(pT));
     localStorage.setItem('db',JSON.stringify(blocks));
     localStorage.setItem('dr',JSON.stringify({s:sS,e:sE}));
+    if(!window._editingDate) localStorage.setItem('work_day', localDateKey());
   }catch(e){}
 }
 function sync(){
@@ -134,6 +137,9 @@ function bindReset(){
     if(modal) modal.classList.remove('on');
     toast('오늘 기록이 초기화됐습니다 ↺');
   });
+  // 스케줄 탭 리셋 버튼 (같은 동작)
+  var btnRstSched=qs('#btnResetSched');
+  if(btnRstSched) btnRstSched.addEventListener('click',function(){ if(modal) modal.classList.add('on'); });
 }
 
 /* ═ 핵심 3가지 ═ */
@@ -165,14 +171,28 @@ function buildPC(cid, withInp){
         dh.addEventListener('dragstart',(function(ii){return function(e){var v=pT[ii];if(!v){e.preventDefault();return;}dragTxt=v;e.dataTransfer.setData('text/plain',v);};})(idx));
         row.appendChild(cb); row.appendChild(tw); row.appendChild(dh);
       } else {
+        // 스케줄 탭: 텍스트 영역 탭하면 스케줄에 추가
         var sp=ce('span'); sp.className='pmirror'; sp.id='pm-'+idx; sp.textContent=pT[idx]||'';
-        sp.setAttribute('draggable','true');
-        sp.style.cursor='grab';
-        sp.addEventListener('dragstart',(function(ii){return function(e){var v=pT[ii];if(!v){e.preventDefault();return;}dragTxt=v;e.dataTransfer.setData('text/plain',v);};})(idx));
+        sp.style.cursor='pointer';
         tw.appendChild(sp);
-        var sdh=ce('span'); sdh.className='pdh'; sdh.setAttribute('draggable','true'); sdh.textContent='⠿';
-        sdh.addEventListener('dragstart',(function(ii){return function(e){var v=pT[ii];if(!v){e.preventDefault();return;}dragTxt=v;e.dataTransfer.setData('text/plain',v);};})(idx));
-        row.appendChild(cb); row.appendChild(tw); row.appendChild(sdh);
+        // 추가 버튼 (＋)
+        var addb=ce('span'); addb.className='pdh prio-add'; addb.textContent='＋';
+        addb.title='스케줄에 추가';
+        addb.style.cssText='cursor:pointer;font-size:16px;color:var(--blue);font-weight:700;padding:0 6px;';
+        var addFn=(function(ii){return function(e){
+          e.stopPropagation();
+          var v=pT[ii]; if(!v){toast('먼저 오늘 탭에서 핵심 '+(ii+1)+'을 입력하세요');return;}
+          // 현재 시간대 기준 또는 비어있는 첫 시간에 1시간 블록 추가
+          var startH=findFreeSlot();
+          addBlock(v, startH, Math.min(startH+1, sE));
+          toast('"'+v+'" 스케줄에 추가됨 ✓');
+        };})(idx);
+        sp.addEventListener('click', addFn);
+        addb.addEventListener('click', addFn);
+        // 드래그도 유지 (PC용)
+        sp.setAttribute('draggable','true');
+        sp.addEventListener('dragstart',(function(ii){return function(e){var v=pT[ii];if(!v){e.preventDefault();return;}dragTxt=v;e.dataTransfer.setData('text/plain',v);};})(idx));
+        row.appendChild(cb); row.appendChild(tw); row.appendChild(addb);
       }
       pl.appendChild(row);
     })(i);
@@ -449,6 +469,14 @@ function attachSchedEvents(){
   cv.addEventListener('pointerdown',function(e){if(e.target!==cv&&!e.target.classList.contains('sthl'))return;tapY=e.clientY;tapT=setTimeout(function(){tapT=null;},400);});
   cv.addEventListener('pointerup',function(e){if(!tapT)return;clearTimeout(tapT);tapT=null;if(Math.abs(e.clientY-tapY)>8)return;var r=cv.getBoundingClientRect(),sh=snap(Math.max(sS,Math.min(sE-.5,(e.clientY-r.top)/ROW+sS)));openBM(null,sh,Math.min(sh+1,sE),'');});
 }
+function findFreeSlot(){
+  // 비어있는 첫 1시간 슬롯 찾기
+  for(var h=sS; h<sE; h+=1){
+    var occupied=blocks.some(function(b){return h<b.endH && (h+1)>b.startH;});
+    if(!occupied) return h;
+  }
+  return sS; // 다 차있으면 시작 시간
+}
 function addBlock(txt,sh,eh){var b={id:'b'+(++bId),text:txt,startH:sh,endH:eh};blocks.push(b);createBEl(b);save();sync();}
 
 /* ═ 스케줄 시간 범위 모달 ═ */
@@ -577,13 +605,25 @@ function showCalDet(key,noR){
   h+='<div class="cdsec">★ 핵심 3가지</div>';
   e.priorities.filter(function(p){return p.text;}).forEach(function(p,pi){h+='<div class="cdpi"><div class="cdpd" style="background:'+(p.done?pal[pi]:'#ddd')+'"></div><span class="cdpt'+(p.done?' dn':'')+'">'+p.text+'</span></div>';});
   if(sg.length){h+='<div class="cdsec">⏱ 스케줄</div><div>';sg.forEach(function(gp){var col=PALS[gc(gp.text)%PALS.length];h+='<span class="cstag" style="background:'+col.bg+';color:'+col.tx+';">'+hL(gp.startH)+'~'+hL(gp.endH)+' '+gp.text+'</span>';});h+='</div>';}
-  h+='<button class="btn-edit-day" data-key="'+key+'" style="margin-top:12px;width:100%;padding:9px;font-size:12px;font-family:inherit;background:none;border:1px solid var(--bd2);border-radius:8px;cursor:pointer;color:var(--tx2);">✏️ 이 날짜 기록 불러와서 수정하기</button>';
+  h+='<div style="display:flex;gap:8px;margin-top:12px;">';
+  h+='<button class="btn-edit-day" style="flex:1;padding:9px;font-size:12px;font-family:inherit;background:none;border:1px solid var(--bd2);border-radius:8px;cursor:pointer;color:var(--tx2);">✏️ 불러와서 수정</button>';
+  h+='<button class="btn-del-day" style="flex:1;padding:9px;font-size:12px;font-family:inherit;background:#fff0f0;border:1px solid #fcc;border-radius:8px;cursor:pointer;color:#c00;">🗑️ 기록 삭제</button>';
+  h+='</div>';
   h+='</div>';
   det.innerHTML=h;
-  // 수정 버튼 이벤트
+  // 수정 버튼
   var editBtn=det.querySelector('.btn-edit-day');
-  if(editBtn) editBtn.addEventListener('click',function(){
-    loadDayForEdit(key);
+  if(editBtn) editBtn.addEventListener('click',function(){ loadDayForEdit(key); });
+  // 삭제 버튼
+  var delBtn=det.querySelector('.btn-del-day');
+  if(delBtn) delBtn.addEventListener('click',function(){
+    if(!confirm(key+' 기록을 완전히 삭제할까요?')) return;
+    entries=entries.filter(function(x){return x.date!==key;});
+    try{localStorage.setItem('de',JSON.stringify(entries));}catch(e){}
+    selDate=null;
+    qs('#cdet').innerHTML='';
+    renderCal();
+    toast(key+' 기록을 삭제했습니다');
   });
   if(!noR) renderCal();
 }
@@ -612,41 +652,38 @@ function loadDayForEdit(key){
 
 /* ═ PWA ═ */
 function bindPWA(){
-  var urlEl=qs('#pwaUrl'); if(urlEl) urlEl.textContent=location.hostname||'receipt-khoe.vercel.app';
-  // 이미 설치된 경우
+  var urlEl=qs('#pwaUrl'); if(urlEl) urlEl.textContent=location.hostname||'receipt.vercel.app';
   if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone){
     setInstalled(); return;
   }
   var installBtn=qs('#btnInstall');
-  // beforeinstallprompt: Chrome/Edge/Android에서 발생
+  // 처음엔 "설치" 표시 (대기중 X)
+  if(installBtn){ installBtn.disabled=false; installBtn.textContent='설치'; }
   window.addEventListener('beforeinstallprompt',function(e){
     e.preventDefault(); deferredInstall=e;
-    if(installBtn){installBtn.disabled=false;installBtn.textContent='설치';}
-    var st=qs('#instStatus'); if(st) st.textContent='';
+    if(installBtn){ installBtn.disabled=false; installBtn.textContent='설치'; }
   });
-  // 버튼 클릭
   if(installBtn) installBtn.addEventListener('click',function(){
     if(deferredInstall){
       deferredInstall.prompt();
       deferredInstall.userChoice.then(function(r){
         deferredInstall=null;
         if(r.outcome==='accepted'){toast('앱 설치 완료! 🎉');setInstalled();}
-        else{var st=qs('#instStatus');if(st)st.textContent='설치를 취소했습니다.';}
+        else{toast('설치를 취소했습니다');}
       });
     } else {
-      // iOS/Firefox: beforeinstallprompt 미지원 → 수동 안내
-      toast('아래 수동 설치 방법을 따라주세요 👇');
-      var st=qs('#instStatus');
-      if(st) st.textContent='이 기기는 위의 수동 설치 방법을 이용해주세요.';
+      // iOS Safari 등: 직접 안내 토스트
+      var ua=navigator.userAgent;
+      if(/iPhone|iPad|iPod/i.test(ua)){
+        toast('Safari 하단 공유(□↑) → "홈 화면에 추가"를 눌러주세요');
+      } else {
+        toast('브라우저 메뉴에서 "앱 설치" 또는 "홈 화면에 추가"를 눌러주세요');
+      }
     }
   });
   window.addEventListener('appinstalled',function(){toast('앱 설치 완료! 🎉');setInstalled();});
-  // 초기 버튼 상태: beforeinstallprompt 오기 전까지 안내 문구
-  if(installBtn && installBtn.disabled){
-    var st=qs('#instStatus');
-    if(st) st.textContent='아래 수동 설치 방법을 이용해주세요.';
-  }
 }
+
 function setInstalled(){
   var c=qs('#pwaCard'), b=qs('#instDone'), s=qs('#instStatus');
   if(c) c.style.display='none';

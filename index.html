@@ -61,16 +61,16 @@
 <!-- TAB2: 스케줄 -->
 <div class="pg" id="pg-sched">
   <div class="pgi">
-    <div class="ph"><h2>시간 스케줄</h2></div>
+    <div class="ph"><h2>시간 스케줄</h2><button class="btn-rst" id="btnResetSched">↺ 리셋</button></div>
     <section class="card">
-      <div class="sl">★ 핵심 3가지 달성 현황</div>
+      <div class="sl">★ 핵심 3가지 (탭하면 스케줄에 추가)</div>
       <div class="plist" id="plSched"></div>
     </section>
     <section class="card">
       <div class="slr"><span class="sl" style="margin:0;border:none;padding:0">⏱ 시간 스케줄</span><button class="btng" id="btnTR">🕐 시간 범위</button></div>
       <div class="stout">
         <div class="stwrap" id="stWrap"><div class="stax" id="stAx"></div><div class="stcv" id="stCv"></div></div>
-        <div class="hint">빈 칸 탭: 블록 추가 | 길게 탭: 수정/삭제 | ⋮ 드래그: 이동 | 상·하단: 크기</div>
+        <div class="hint">위 핵심 3가지를 탭하면 스케줄에 추가됩니다 | 빈 칸 탭: 블록 추가 | 길게 탭: 수정/삭제 | ⋮ 드래그: 이동 | 상·하단: 크기</div>
       </div>
     </section>
   </div>
@@ -94,15 +94,9 @@
     <div class="pwa-card" id="pwaCard">
       <div class="pwa-appicon"><img src="/icons/icon-192.png" alt="" onerror="this.parentElement.textContent='📋'"></div>
       <div class="pwa-info"><div class="pwa-name">영수증 다이어리</div><div class="pwa-url" id="pwaUrl">receipt-khoe.vercel.app</div></div>
-      <button class="pwa-btn" id="btnInstall" disabled>대기 중</button>
+      <button class="pwa-btn" id="btnInstall">설치</button>
     </div>
     <div class="inst-status" id="instStatus"></div>
-    <div class="guide-card">
-      <div class="guide-head">설치 방법 안내</div>
-      <div class="guide-row"><span class="gtag">🍎 iOS</span><span class="gdesc">Safari → 하단 공유(□↑) → <strong>"홈 화면에 추가"</strong></span></div>
-      <div class="guide-row"><span class="gtag">🤖 Android</span><span class="gdesc">Chrome 메뉴(⋮) → <strong>"앱 설치"</strong></span></div>
-      <div class="guide-row"><span class="gtag">💻 Chrome</span><span class="gdesc">주소창 오른쪽 <strong>⊕ 설치 아이콘</strong> 클릭</span></div>
-      <div class="guide-row"><span class="gtag">💻 Edge</span><span class="gdesc">주소창 오른쪽 <strong>앱 아이콘</strong> 클릭</span></div>
     </div>
   </div>
 </div>
