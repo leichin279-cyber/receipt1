@@ -613,11 +613,11 @@ function showCalDet(key,noR){
   if(sg.length){h+='<div class="cdsec">⏱ 스케줄</div><div>';sg.forEach(function(gp){var col=PALS[gc(gp.text)%PALS.length];h+='<span class="cstag" style="background:'+col.bg+';color:'+col.tx+';">'+hL(gp.startH)+'~'+hL(gp.endH)+' '+gp.text+'</span>';});h+='</div>';}
   /* 수정/삭제 버튼 */
   h+='<div style="display:flex;gap:8px;margin-top:12px;">';
-  h+='<button class="btn-edit-day" style="flex:1;padding:9px;font-size:12px;font-family:inherit;background:none;border:1px solid var(--bd2);border-radius:8px;cursor:pointer;color:var(--tx2);">✏️ 불러와서 수정</button>';
+  h+='<button class="btn-edit-day" style="flex:1;padding:9px;font-size:12px;font-family:inherit;background:var(--tx);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-weight:600;">→ 이 날짜로 이동</button>';
   h+='<button class="btn-del-day" style="flex:1;padding:9px;font-size:12px;font-family:inherit;background:#fff0f0;border:1px solid #fcc;border-radius:8px;cursor:pointer;color:#c00;">🗑️ 기록 삭제</button>';
   h+='</div></div>';
   det.innerHTML=h;
-  det.querySelector('.btn-edit-day').addEventListener('click',function(){loadDayForEdit(key);});
+  det.querySelector('.btn-edit-day').addEventListener('click',function(){switchToDay(key);});
   det.querySelector('.btn-del-day').addEventListener('click',function(){
     if(!confirm(key+' 기록을 삭제할까요?'))return;
     entries=entries.filter(function(x){return x.date!==key;});
@@ -626,6 +626,53 @@ function showCalDet(key,noR){
   });
   if(!noR)renderCal();
 }
+/* 달력 날짜 클릭 → 해당 날짜로 오늘/스케줄 탭 즉시 전환
+   - 오늘 작업 중인 내용은 오늘 날짜로 자동 저장
+   - 선택 날짜 기록이 없으면 빈 상태로 새로 작성 가능 */
+function switchToDay(key){
+  /* 1. 현재 오늘 데이터 저장 */
+  var todayKey=ldk();
+  if(!_editingDate){
+    var pr=pT.map(function(t,i){return{text:t,done:pD[i]};});
+    var has=pr.some(function(p){return p.text;})||todos.length||blocks.length;
+    if(has){
+      var ent={date:todayKey,displayDate:fmtD(new Date(todayKey+'T12:00:00')),
+        priorities:pr,todos:JSON.parse(JSON.stringify(todos)),
+        blocks:JSON.parse(JSON.stringify(blocks))};
+      var ix=entries.findIndex(function(x){return x.date===todayKey;});
+      if(ix>=0)entries[ix]=ent; else entries.unshift(ent);
+      try{localStorage.setItem('de',JSON.stringify(entries));}catch(err){}
+    }
+  }
+  /* 2. 해당 날짜 기록 로드 (없으면 빈 상태) */
+  var e=entries.find(function(x){return x.date===key;});
+  if(e){
+    todos=JSON.parse(JSON.stringify(e.todos||[]));
+    pT=e.priorities.map(function(p){return p.text||'';});
+    pD=e.priorities.map(function(p){return p.done||false;});
+    blocks=JSON.parse(JSON.stringify(e.blocks||[]));
+  } else {
+    /* 해당 날짜 기록 없음 → 빈 상태로 새로 작성 */
+    todos=[]; pT=['','','']; pD=[false,false,false]; blocks=[];
+  }
+  _editingDate=(key===todayKey)?null:key;
+  save();
+  buildPrioUI(); renderTodos(); renderBlocksFromData(); refreshSchedPrio();
+  /* 3. 오늘 탭으로 이동 */
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  var t=qs('.tab[data-pg="pg-todo"]');if(t)t.classList.add('on');
+  qs('#pg-todo').classList.add('on');
+  /* 4. 헤더 날짜 표시 */
+  var ph=qs('.ph h2');
+  if(ph){
+    if(key===todayKey) ph.textContent='오늘의 기록';
+    else ph.textContent='📅 '+key.replace(/-/g,'.');
+  }
+  var msg=e?('📅 '+key+' 기록으로 이동했습니다'):('📅 '+key+' — 새로 작성하세요');
+  toast(msg);
+}
+
 function loadDayForEdit(key){
   var e=entries.find(function(x){return x.date===key;});if(!e)return;
   /* 1. 현재 오늘 데이터를 먼저 달력에 저장 (덮어쓰기 방지) */
