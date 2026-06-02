@@ -6,9 +6,9 @@
 var _pwaPrompt = null;  // 설치 이벤트 보관
 
 window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();        // 브라우저 기본 배너 숨기기
-  _pwaPrompt = e;            // 이벤트 보관
-  /* 버튼이 이미 DOM에 있으면 즉시 활성화 */
+  e.preventDefault();
+  _pwaPrompt = e;
+  console.log('[PWA] beforeinstallprompt 발생 ✓');
   var btn = document.getElementById('btnInstall');
   var st  = document.getElementById('instStatus');
   if (btn) {
@@ -16,7 +16,7 @@ window.addEventListener('beforeinstallprompt', function(e) {
     btn.textContent = '📲 설치하기';
     btn.style.cssText = 'background:#0071e3;color:#fff;border:none;border-radius:20px;padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;';
   }
-  if (st) st.textContent = '버튼을 눌러 홈 화면에 설치하세요!';
+  if (st) st.textContent = '✅ 설치 준비됨! 버튼을 누르세요.';
 });
 
 (function(){
@@ -783,23 +783,25 @@ function bindPWA(){
   /* 버튼 클릭 → 설치 창 열기 */
   if(btn) btn.addEventListener('click', function(){
     if(_pwaPrompt){
-      _pwaPrompt.prompt();
-      _pwaPrompt.userChoice.then(function(r){
-        _pwaPrompt = null;
+      /* prompt 호출 전에 로컬 변수에 저장 (null 초기화 타이밍 충돌 방지) */
+      var p = _pwaPrompt;
+      _pwaPrompt = null;
+      p.prompt();
+      p.userChoice.then(function(r){
         if(r.outcome === 'accepted'){
           toast('앱 설치 완료! 🎉');
           setInstalled();
         } else {
-          if(status) status.textContent = '설치를 취소했습니다.';
-          /* 취소 후 재설치 가능하도록 다시 대기 */
+          if(status) status.textContent = '설치를 취소했습니다. 다시 누르면 설치할 수 있어요.';
+          /* Chrome이 다시 beforeinstallprompt를 줄 때 재활성화 */
           window.addEventListener('beforeinstallprompt', function(e2){
             e2.preventDefault(); _pwaPrompt = e2; activateBtn();
           }, {once: true});
         }
       });
     } else {
-      /* 브라우저 조건 미충족 시 안내 */
-      if(status) status.textContent = '설치 조건이 충족되지 않았습니다. 잠시 후 다시 눌러주세요.';
+      /* _pwaPrompt 없음: 조건 미충족 또는 이미 설치됨 */
+      if(status) status.textContent = '잠시 기다렸다가 다시 눌러주세요.';
     }
   });
 
