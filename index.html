@@ -164,18 +164,22 @@
     <div class="pwa-card" id="pwaCard">
       <div class="pwa-appicon">
         <!-- 심플한 다이어리 아이콘 SVG -->
-        <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="5" y="3" width="22" height="28" rx="3" stroke="white" stroke-width="2" fill="none"/>
-          <line x1="10" y1="11" x2="24" y2="11" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          <line x1="10" y1="16" x2="24" y2="16" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          <line x1="10" y1="21" x2="19" y2="21" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          <circle cx="8" cy="11" r="1.5" fill="white"/>
-          <circle cx="8" cy="16" r="1.5" fill="white"/>
-          <circle cx="8" cy="21" r="1.5" fill="white"/>
+        <!-- 영수증 아이콘 -->
+        <svg width="32" height="36" viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 영수증 몸체 -->
+          <rect x="2" y="2" width="28" height="30" rx="2" fill="white" fill-opacity="0.15" stroke="white" stroke-width="1.5"/>
+          <!-- 지그재그 하단 -->
+          <path d="M2 30 Q4 28 6 30 Q8 32 10 30 Q12 28 14 30 Q16 32 18 30 Q20 28 22 30 Q24 32 26 30 Q28 28 30 30" stroke="white" stroke-width="1.5" fill="none"/>
+          <!-- 텍스트 줄 -->
+          <line x1="7" y1="10" x2="25" y2="10" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="7" y1="15" x2="25" y2="15" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="7" y1="20" x2="20" y2="20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- 체크 표시 -->
+          <path d="M7 25 L10 28 L16 22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       <div class="pwa-info">
-        <div class="pwa-name">영수증 다이어리</div>
+        <div class="pwa-name">영수증 시간관리</div>
         <div class="pwa-url" id="pwaUrl">receipt-khoe.vercel.app</div>
       </div>
       <button class="pwa-btn" id="btnInstall">설치</button>
