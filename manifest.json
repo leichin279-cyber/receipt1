@@ -1,7 +1,7 @@
 {
-  "name": "영수증 다이어리",
+  "name": "영수증 시간관리",
   "short_name": "영수증",
-  "description": "매일 할 일과 핵심 목표를 영수증으로 기록하는 자기계발 다이어리",
+  "description": "매일 할 일과 핵심 목표를 영수증 형식으로 기록하는 시간관리 앱",
   "start_url": "/?v=2",
   "display": "standalone",
   "background_color": "#f0f0f0",
