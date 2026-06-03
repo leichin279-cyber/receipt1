@@ -153,6 +153,10 @@ function bindTabs(){
 function doReset(){
   todos=[]; pT=['','','']; pD=[false,false,false]; blocks=[];
   sS=6; sE=22;
+  /* 오늘 날짜로 복귀 */
+  _editingDate=null;
+  localStorage.setItem('work_day', ldk());
+  var ph=qs('.ph h2'); if(ph) ph.textContent='오늘의 기록';
   save(); sync();
   buildPrioUI(); renderTodos();
   var cv=qs('#stCv'); if(cv)cv.querySelectorAll('.sb').forEach(function(el){el.remove();});
